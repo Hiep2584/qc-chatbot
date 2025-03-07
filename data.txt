@@ -1,0 +1,153 @@
+ 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot QC Giấy Tissue</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            white-space: pre-wrap; /* Giữ định dạng xuống dòng */
+        }
+        .bot {
+            background-color: #e0e0e0;
+            align-self: flex-start;
+        }
+        .user {
+            background-color: #c0e0ff;
+            align-self: flex-end;
+        }
+        #input-container {
+            margin-top: 10px;
+            display: flex;
+        }
+        #user-input {
+            width: 80%;
+            padding: 5px;
+            margin-right: 10px;
+        }
+        #send-button {
+            padding: 5px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chatbot QC Giấy Tissue</h1>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+    </div>
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="Nhập mã lỗi hoặc mô tả lỗi...">
+        <button id="send-button">Gửi</button>
+    </div>
+    <script>
+        let data = [];
+        const chatMessages = document.getElementById('chat-messages');
+
+        // Tải dữ liệu từ file JSON
+        fetch('https://raw.githubusercontent.com/yourusername/yourrepo/main/data.json') // Thay bằng URL thực tế
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Không thể tải dữ liệu');
+                }
+                return response.json();
+            })
+            .then(jsonData => {
+                data = jsonData;
+                displayMessage('Chào mừng bạn đến với Chatbot QC Giấy Tissue!\nNhập mã lỗi (ví dụ: L01) hoặc mô tả lỗi (ví dụ: Giấy bị đảo mép) để được hỗ trợ.');
+            })
+            .catch(error => {
+                console.error('Lỗi khi tải dữ liệu:', error);
+                displayMessage('Xin lỗi, có lỗi khi tải dữ liệu. Vui lòng thử lại sau.');
+            });
+
+        // Hàm hiển thị tin nhắn
+        function displayMessage(message, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isUser ? 'message user' : 'message bot';
+            messageDiv.textContent = message;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Xử lý khi nhấn nút Gửi
+        document.getElementById('send-button').addEventListener('click', () => {
+            const query = document.getElementById('user-input').value.trim();
+            if (query === '') {
+                displayMessage('Vui lòng nhập câu hỏi.', true);
+                return;
+            }
+            displayMessage(query, true);
+            document.getElementById('user-input').value = '';
+            processQuery(query);
+        });
+
+        // Xử lý khi nhấn phím Enter
+        document.getElementById('user-input').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                document.getElementById('send-button').click();
+            }
+        });
+
+        // Hàm xử lý câu hỏi
+        function processQuery(query) {
+            const queryLower = query.toLowerCase();
+
+            // Kiểm tra lệnh "help"
+            if (queryLower === 'help' || queryLower === 'hướng dẫn') {
+                displayMessage('Bạn có thể nhập mã lỗi (ví dụ: "L01") hoặc mô tả lỗi (ví dụ: "Giấy bị đảo mép") để nhận thông tin về nguyên nhân và cách xử lý.');
+                return;
+            }
+
+            // Tìm kiếm mã lỗi chính xác
+            const exactCodeMatch = data.find(item => item.code.toLowerCase() === queryLower);
+            if (exactCodeMatch) {
+                displayMessage(`Lỗi: ${exactCodeMatch.error}\nNguyên nhân: ${exactCodeMatch.cause}\nCách xử lý: ${exactCodeMatch.solution}`);
+                return;
+            }
+
+            // Tìm kiếm từ khóa trong mô tả lỗi
+            const queryWords = queryLower.split(' ');
+            const matches = data.filter(item => {
+                const errorLower = item.error.toLowerCase();
+                return queryWords.every(word => errorLower.includes(word));
+            });
+
+            if (matches.length === 0) {
+                displayMessage('Xin lỗi, không tìm thấy lỗi phù hợp. Vui lòng thử lại với mã lỗi hoặc mô tả khác.');
+            } else if (matches.length === 1) {
+                const item = matches[0];
+                displayMessage(`Lỗi: ${item.error}\nNguyên nhân: ${item.cause}\nCách xử lý: ${item.solution}`);
+            } else {
+                const codes = matches.map(item => item.code).join(', ');
+                displayMessage(`Tìm thấy nhiều lỗi: ${codes}. Vui lòng nhập mã lỗi cụ thể để xem chi tiết.`);
+            }
+        }
+    </script>
+</body>
+</html>
